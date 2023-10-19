@@ -98,6 +98,11 @@ function handlePostback(sender_psid, received_postback) {}
 
 // Sends response messages via the Send API
 function callSendAPI(sender_psid, response) {
+  const agentOptions = {
+    rejectUnauthorized: false,
+  };
+
+  const agent = new https.Agent(agentOptions);
   // Construct the message body
   let request_body = {
     recipient: {
@@ -113,6 +118,7 @@ function callSendAPI(sender_psid, response) {
       qs: { access_token: process.env.PAGE_ACCESS_TOKEN },
       method: "POST",
       json: request_body,
+      agent: agent,
     },
     (err, res, body) => {
       if (!err) {
