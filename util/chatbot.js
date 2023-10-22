@@ -2,6 +2,8 @@ require("dotenv/config");
 const https = require("https");
 const request = require("request");
 
+const image_started =
+  "https://img.freepik.com/premium-vector/online-shopping-store-website-mobile-phone-design-smart-business-marketing-concept-horizontal-view-vector-illustration_62391-460.jpg?w=2000";
 // Sends response messages via the Send API
 function callSendAPI(sender_psid, response) {
   const agentOptions = {
@@ -92,7 +94,6 @@ const getProfileUser = async (sender_psid) => {
       {
         uri: `https://graph.facebook.com/${sender_psid}?fields=first_name,last_name,profile_pic&access_token=${process.env.PAGE_ACCESS_TOKEN}`,
         method: "GET",
-        agent: agent,
       },
       async (err, res, body) => {
         console.log(err);
@@ -108,14 +109,73 @@ const getProfileUser = async (sender_psid) => {
   });
 };
 
+//set template get started
+const templateGetStarted = async (sender_psid) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const response = {
+        recipient: {
+          id: sender_psid,
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: [
+                {
+                  title: "Thank you for our service's use!",
+                  image_url: image_started,
+                  subtitle: "We have several choice for you.",
+                  // default_action: {
+                  //   type: "postback",
+                  //   title: "MAIN PRODUCTS",
+                  //   payload: "MAIN_PRODUCTS",
+                  // },
+                  buttons: [
+                    {
+                      type: "postback",
+                      title: "MAIN PRODUCTS",
+                      payload: "MAIN_PRODUCTS",
+                    },
+                    {
+                      type: "postback",
+                      title: "ABOUT SHOP",
+                      payload: "INTRODUCTION",
+                    },
+                    {
+                      type: "postback",
+                      title: "BOT INTRODUCTION",
+                      payload: "BOT_INTRODUCE",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      };
+      resolve(response);
+    } catch (e) {
+      console.log(e);
+      reject(e);
+    }
+  });
+};
+
 //handle click get started
 const handleGetStarted = async (sender_psid) => {
   try {
     const profileUser = await getProfileUser(sender_psid);
-    const response = {
+    const templateGetStarted = await templateGetStarted(sender_psid);
+    const response1 = {
       text: `Welcome ${profileUser.first_name} ${profileUser.last_name} to my page. Have a good day!`,
     };
-    return response;
+    const response2 = templateGetStarted;
+    return {
+      response1,
+      response2,
+    };
   } catch (err) {
     console.log(err);
     return { text: "Error. Please contact with admin." };
@@ -141,8 +201,10 @@ async function handlePostback(sender_psid, received_postback) {
       break;
     case "GET_STARTED":
       //handle
-      response = await handleGetStarted(sender_psid);
-      break;
+      const response = await handleGetStarted(sender_psid);
+      await callSendAPI(sender_psid, response.response1);
+      await callSendAPI(sender_psid, response.response2);
+      return;
     default:
       // code block
       response = {
